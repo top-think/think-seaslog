@@ -25,6 +25,7 @@ composer require topthink/think-seaslog
 注意：如果开启JSON格式记录，请务必设置default_template参数 仅记录日志内容
 
 ~~~
- seaslog.default_template = "%M"
+seaslog.default_template = "%M"
 ~~~
 
+关于SeasLog的更多使用参考php手册中的SeasLog章节
