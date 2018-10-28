@@ -11,7 +11,7 @@
     ],
     "require": {
         "topthink/think-installer": "~2.0",
-	    "topthink/framework": "^5.1",
+	    "topthink/framework": "^5.1"
     },
     "autoload": {
         "psr-4": {
