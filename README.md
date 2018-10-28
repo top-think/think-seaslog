@@ -28,3 +28,4 @@ composer require topthink/think-seaslog
  seaslog.default_template = "%M"
 ~~~
 
+关于SeasLog的更多使用参考php手册中的SeasLog章节
