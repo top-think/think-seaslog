@@ -8,16 +8,23 @@
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
+declare (strict_types = 1);
 
 namespace think\log\driver;
 
+use SeasLog as SeasLogger;
 use think\App;
+use think\contract\LogHandlerInterface;
 
 /**
  * 本地化调试输出到文件
  */
-class Seaslog
+class Seaslog implements LogHandlerInterface
 {
+    /**
+     * 配置参数
+     * @var array
+     */
     protected $config = [
         'time_format' => ' c ',
         'path'        => '',
@@ -25,10 +32,14 @@ class Seaslog
         'json'        => false,
     ];
 
+    /**
+     * 应用对象
+     * @var App
+     */
     protected $app;
 
     // 实例化并传入参数
-    public function __construct(App $app, $config = [])
+    public function __construct(App $app, array $config = [])
     {
         $this->app = $app;
 
@@ -42,29 +53,24 @@ class Seaslog
             $this->config['path'] .= DIRECTORY_SEPARATOR;
         }
 
-        \SeasLog::setBasePath($this->config['path']);
+        SeasLogger::setBasePath($this->config['path']);
 
         if ($this->config['logger']) {
-            \SeasLog::setLogger($this->config['logger']);
+            SeasLogger::setLogger($this->config['logger']);
         }
     }
 
     /**
      * 日志写入接口
      * @access public
-     * @param  array    $log    日志信息
-     * @param  bool     $append 是否追加请求信息
+     * @param  array $log 日志信息
      * @return bool
      */
-    public function save(array $log = [], $append = false)
+    public function save(array $log = []): bool
     {
         if (PHP_SAPI != 'cli') {
             if (!$this->config['json']) {
-                \SeasLog::log('info', $this->parseLog());
-            }
-            // 添加调试日志
-            if ($this->app->isDebug() && $append && !$this->config['json']) {
-                \SeasLog::log('debug', $this->getDebugLog());
+                SeasLogger::log('info', $this->parseLog());
             }
         }
 
@@ -72,7 +78,7 @@ class Seaslog
             if ($this->config['json']) {
                 $info[$type] = $val;
             } else {
-                \SeasLog::log($type, implode("\n\r", $val));
+                SeasLogger::log($type, $val);
             }
         }
 
@@ -83,18 +89,10 @@ class Seaslog
                 $info['info'][] = $this->parseLog(true);
             }
 
-            if ($this->app->isDebug() && $append) {
-                if (isset($info['debug'])) {
-                    array_unshift($info['debug'], $this->getDebugLog(true));
-                } else {
-                    $info['debug'][] = $this->getDebugLog(true);
-                }
-            }
-
-            \SeasLog::log('info', json_encode($info, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            SeasLogger::log('info', json_encode($info, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
 
-        return \SeasLog::flushBuffer();
+        return SeasLogger::flushBuffer();
     }
 
     /**
@@ -103,7 +101,7 @@ class Seaslog
      * @param  bool     $json 是否JSON格式
      * @return string
      */
-    protected function parseLog($json = false)
+    protected function parseLog(bool $json = false): string
     {
         $info = [
             'timestamp' => date($this->config['time_format']),
@@ -120,40 +118,4 @@ class Seaslog
         return "---------------------------------------------------------------\r\n[{$info['timestamp']}] {$info['ip']} {$info['method']} {$info['host']}{$info['uri']}";
     }
 
-    /**
-     * 追加调试日志
-     * @access protected
-     * @param  bool     $json 是否JSON格式
-     * @return string
-     */
-    protected function getDebugLog($json = false)
-    {
-        if ($json) {
-            // 获取基本信息
-            $runtime = round(microtime(true) - $this->app->getBeginTime(), 10);
-            $reqs    = $runtime > 0 ? number_format(1 / $runtime, 2) : '∞';
-
-            $memory_use = number_format((memory_get_usage() - $this->app->getBeginMem()) / 1024, 2);
-
-            $info = [
-                'runtime' => number_format($runtime, 6) . 's',
-                'reqs'    => $reqs . 'req/s',
-                'memory'  => $memory_use . 'kb',
-                'file'    => count(get_included_files()),
-            ];
-            return json_encode($info, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        }
-        // 增加额外的调试信息
-        $runtime = round(microtime(true) - $this->app->getBeginTime(), 10);
-        $reqs    = $runtime > 0 ? number_format(1 / $runtime, 2) : '∞';
-
-        $memory_use = number_format((memory_get_usage() - $this->app->getBeginMem()) / 1024, 2);
-
-        $time_str   = '[运行时间：' . number_format($runtime, 6) . 's] [吞吐率：' . $reqs . 'req/s]';
-        $memory_str = ' [内存消耗：' . $memory_use . 'kb]';
-        $file_load  = ' [文件加载：' . count(get_included_files()) . ']';
-
-        return $time_str . $memory_str . $file_load;
-
-    }
 }

@@ -1,6 +1,6 @@
 # think-seaslog
 
-ThinkPHP 5.1 SeasLog 日志扩展
+ThinkPHP 6.0 SeasLog 日志扩展
 
 ## 安装
 
